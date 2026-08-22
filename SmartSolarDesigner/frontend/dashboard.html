@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard - Smart Solar Designer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+    <h1>Smart Solar Designer</h1>
+    <nav>
+        <div class="dropdown" id="systemDropdown">
+            <button class="dropdown-btn" onclick="toggleDropdown()">☰ Menu ▾</button>
+            <div class="dropdown-content" style="right: 0; left: auto;">
+                <a href="index.html">🏠 Home</a>
+                
+                <!-- قسم فرعي للأنظمة -->
+                <div class="submenu-container">
+                    <div class="submenu-title">⚡️ Systems Type:</div>
+                    <a href="calcu.html?mode=daily" style="padding-left: 25px;">- Residential System</a>
+                    <a href="calcu.html?mode=agricultural" style="padding-left: 25px;">- Agricultural (Solar Pump)</a>
+                </div>
+
+                <a href="dashboard.html">📊 Dashboard</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+    <h1 style="text-align: center; margin-top: 20px;">Saved Projects</h1>
+    <div id="list"></div>
+
+    <!-- تأكد أن اسم ملف الجافاسكريبت مطبق عندك (style.js أو script.js) -->
+    <script src="style.js"></script>
+</body>
+</html>
