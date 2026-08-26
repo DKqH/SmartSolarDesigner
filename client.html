@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Solar Designer - Client Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header style="justify-content: center;">
+    <h1>Smart Solar Designer - Client Portal</h1>
+</header>
+
+    <div class="calculator">
+        <h2>Solar System Calculator</h2>
+        <p style="font-size: 13px; color: var(--text-mid); margin-bottom: 20px; text-align: center;">
+            Calculate your required solar panels, inverter, and estimated system cost instantly.
+        </p>
+        
+        <label>Select System Type:</label>
+        <select id="mode" onchange="
+            if(this.value === 'daily') {
+                document.getElementById('dailyInputs').style.display = 'block';
+                document.getElementById('agriculturalInputs').style.display = 'none';
+            } else {
+                document.getElementById('dailyInputs').style.display = 'none';
+                document.getElementById('agriculturalInputs').style.display = 'block';
+            }
+        ">
+            <option value="daily">Residential (Home / Daily Energy)</option>
+            <option value="agricultural">Agricultural (Solar Water Pump)</option>
+        </select>
+
+        <div id="dailyInputs">
+            <label>Daily Energy Consumption (kWh):</label>
+            <input type="number" id="energy" placeholder="e.g. 10">
+        </div>
+
+        <div id="agriculturalInputs" style="display: none;">
+            <label>Pump Power (HP - Horsepower):</label>
+            <input type="number" id="pumpHp" placeholder="e.g. 5">
+        </div>
+
+        <label>Peak Sun Hours (Hours/Day):</label>
+        <input type="number" id="sunHours" value="5">
+        
+        <div style="margin: 20px 0; text-align: left;">
+            <label style="color: var(--accent2); margin-bottom: 12px; display: block; font-weight: bold; font-size: 14px;">
+                🛠 Optional Accessories & Services:
+            </label>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+                <div style="background: rgba(0, 43, 54, 0.5); border: 1px solid var(--glass-border); padding: 12px; border-radius: 6px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-hi); cursor: pointer; margin-bottom: 8px;">
+                        <input type="checkbox" id="optCables" checked style="width: 16px; height: 16px; accent-color: var(--accent);">
+                        DC/AC Cables ($2 per meter)
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 8px; padding-left: 24px;">
+                        <span style="font-size: 11px; color: var(--text-mid);">Length (Meters):</span>
+                        <input type="number" id="cableMeters" value="30" style="width: 70px; padding: 4px; font-size: 12px;">
+                    </div>
+                </div>
+
+                <label style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 43, 54, 0.5); border: 1px solid var(--glass-border); padding: 12px; border-radius: 6px; cursor: pointer;">
+                    <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-hi);">
+                        <input type="checkbox" id="optMounting" value="200" checked style="width: 16px; height: 16px; accent-color: var(--accent);">
+                        Aluminum Structures
+                    </span>
+                    <span style="font-family: var(--font-mono); color: var(--cyan); font-size: 13px;">+$200</span>
+                </label>
+                <label style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 43, 54, 0.5); border: 1px solid var(--glass-border); padding: 12px; border-radius: 6px; cursor: pointer;">
+                    <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-hi);">
+                        <input type="checkbox" id="optProtection" value="120" style="width: 16px; height: 16px; accent-color: var(--accent);">
+                        Protection Box & MCBs
+                    </span>
+                    <span style="font-family: var(--font-mono); color: var(--cyan); font-size: 13px;">+$120</span>
+                </label>
+
+                <label style="display: flex; justify-content: space-between; align-items: center; background: rgba(0, 43, 54, 0.5); border: 1px solid var(--glass-border); padding: 12px; border-radius: 6px; cursor: pointer;">
+                    <span style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-hi);">
+                        <input type="checkbox" id="optLabor" style="width: 16px; height: 16px; accent-color: var(--accent);">
+                        Request Installation Service
+                    </span>
+                    <span style="font-size: 11px; color: var(--accent2);">(Priced by Engineer)</span>
+                </label>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="calculateClientSystem()">Calculate System & Cost</button>
+        <div id="result"></div>
+        <button class="btn btn-secondary" onclick="openClientModal()">Save Project (Send to Engineer)</button>
+    </div>
+
+<!-- نافذة إدخال بيانات العميل (تظهر بعد النضغط على إرسال الطلب للمهندس) -->
+<div id="clientModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center;">
+    <div class="calculator" style="max-width: 420px; margin: auto; position: relative;">
+        <h3 style="color: var(--accent2); margin-bottom: 16px; text-align: center;">📝 أدخل بيانات العميل للإرسال</h3>
+        <form id="clientForm" onsubmit="submitClientOrder(event)">
+            <label>اسم العميل:</label>
+            <input type="text" id="clientName" required placeholder="الاسم الكريم">
+
+            <label>السكن / العنوان:</label>
+            <input type="text" id="clientAddress" required placeholder="المدينة، الحي">
+
+            <label>رقم التلفون:</label>
+            <input type="tel" id="clientPhone" required placeholder="0912345678">
+
+            <button type="submit" class="btn btn-primary" style="margin-top: 20px;">تأكيد وإرسال الطلب للمهندس</button>
+            <button type="button" class="btn btn-secondary" onclick="closeClientModal()" style="margin-top: 10px;">إلغاء</button>
+        </form>
+    </div>
+</div>
+
+    <script>
+        const panelPowerValue = 590;
+
+        function calculateClientSystem() {
+            const modeElement = document.getElementById("mode");
+            const sunHoursElement = document.getElementById("sunHours");
+            const resultElement = document.getElementById("result");
+            
+            if (!modeElement || !sunHoursElement) return;
+
+            const mode = modeElement.value;
+            const sunHours = Number(sunHoursElement.value);
+
+            if (sunHours <= 0) {
+                alert("Please enter valid Sun Hours!");
+                return;
+            }
+
+            let energy = 0;
+            let inverter = 0;
+            let battery = 0;
+            let panels = 0;
+            let systemTypeName = "";
+            let extrasList = [];
+
+            if (mode === "daily") {
+                systemTypeName = "Residential System (Home)";
+                const energyElement = document.getElementById("energy");if (!energyElement) return;
+                
+                energy = Number(energyElement.value);
+                if (energy <= 0) {
+                    alert("Please enter valid energy consumption!");
+                    return;
+                }
+                const peakLoad = energy / 5;
+                inverter = Math.ceil(peakLoad * 1.25);
+                battery = Math.ceil((energy * 0.6) / 0.85);
+                panels = Math.ceil((energy * 1000) / (sunHours * panelPowerValue));
+            } else {
+                systemTypeName = "Agricultural System (Solar Water Pump)";
+                const pumpHpElement = document.getElementById("pumpHp");
+                if (!pumpHpElement) return;
+                const pumpHp = Number(pumpHpElement.value);
+                if (pumpHp <= 0) {
+                    alert("Please enter valid pump horsepower (HP)!");
+                    return;
+                }
+                
+                const pumpKw = pumpHp * 0.746;
+                const requiredPvKw = pumpKw * 1.30; 
+                
+                inverter = Math.ceil(pumpKw * 1.25);
+                battery = 0; 
+                panels = Math.ceil((requiredPvKw * 1000) / panelPowerValue);
+                energy = pumpKw * sunHours;
+            }
+
+            let estimatedCost = (panels * 120) + (inverter * 150) + (battery * 200);
+            
+            const optCables = document.getElementById("optCables");
+            const cableMetersElement = document.getElementById("cableMeters");
+            if (optCables && optCables.checked && cableMetersElement) {
+                const meters = Number(cableMetersElement.value) || 0;
+                estimatedCost += (meters * 2);
+                extrasList.push("DC/AC Cables (" + meters + " Meters)");
+            }
+
+            const optMounting = document.getElementById("optMounting");
+            if (optMounting && optMounting.checked) {
+                estimatedCost += Number(optMounting.value);
+                extrasList.push("Aluminum Mounting Structures");
+            }
+
+            const optProtection = document.getElementById("optProtection");
+            if (optProtection && optProtection.checked) {
+                estimatedCost += Number(optProtection.value);
+                extrasList.push("Protection Box & MCBs");
+            }
+
+            const optLabor = document.getElementById("optLabor");
+            if (optLabor && optLabor.checked) {
+                extrasList.push("Installation Labor");
+            }
+
+            const currentData = {
+                mode: systemTypeName,
+                energy: energy.toFixed(1),
+                panels: panels,
+                panelPower: panelPowerValue,
+                battery: battery,
+                inverter: inverter,
+                extras: extrasList,
+                cost: estimatedCost,
+                date: new Date().toLocaleDateString()
+            };
+
+            // حفظ البيانات مؤقتاً في المتصفح
+            localStorage.setItem("currentProject", JSON.stringify(currentData));
+
+            let resultHTML = '<div class="result-card">' +
+                '<h3>📊 Your Design & Estimated Price</h3>' +
+                '<p><span class="ico">🚜</span> <strong>System:</strong> ' + systemTypeName + '</p>' +
+                '<p><span class="ico">☀️</span> <strong>Solar Panels:</strong> ' + panels + ' panels (' + panelPowerValue + 'W)</p>' +
+                '<p><span class="ico">⚡️</span> <strong>Inverter Size:</strong> ' + inverter + ' kW</p>';
+
+            if (mode === "agricultural") {
+                resultHTML += '<p><span class="ico">🔋</span> <strong>Battery Bank:</strong> Not Required</p>';
+            } else {
+                resultHTML += '<p><span class="ico">🔋</span> <strong>Battery Size:</strong> ' + battery + ' kWh</p>';
+            }
+            resultHTML += '<hr style="border-color: var(--glass-border); margin: 12px 0;">' +
+                '<p style="font-size: 15px; color: var(--accent2) !important;"><strong>💰 Estimated Total Cost:</strong> $' + estimatedCost.toLocaleString() + '</p>' +
+                '</div>';
+            
+            if (resultElement) {
+                resultElement.innerHTML = resultHTML;
+            }
+        }
+
+        // دالة فتح نافذة بيانات العميل
+        function openClientModal() {
+            const projectData = localStorage.getItem("currentProject");
+            if (!projectData) {
+                alert("Please calculate the system first by clicking 'Calculate System & Cost'!");
+                return;
+            }
+            document.getElementById('clientModal').style.display = 'flex';
+        }
+
+        // دالة إغلاق نافذة بيانات العميل
+        function closeClientModal() {
+            document.getElementById('clientModal').style.display = 'none';
+        }
+
+        // دالة إرسال الطلب النهائي مع بيانات العميل للمهندس
+        function submitClientOrder(event) {
+            event.preventDefault();
+            
+            const projectData = localStorage.getItem("currentProject");
+            if (!projectData) {
+                alert("Please calculate the system first!");
+                return;
+            }
+            
+            let project = JSON.parse(projectData);
+            
+            // إضافة بيانات العميل المدخلة في الـ Modal إلى كائن المشروع
+            project.clientName = document.getElementById('clientName').value;
+            project.clientAddress = document.getElementById('clientAddress').value;
+            project.clientPhone = document.getElementById('clientPhone').value;
+            project.status = "Pending Approval"; 
+            
+            // جلب الطلبات السابقة أو إنشاء مصفوفة جديدة
+            let clientRequests = JSON.parse(localStorage.getItem("clientRequests")) || [];
+            clientRequests.push(project);
+            
+            // حفظ المصفوفة المحدثة في الـ LocalStorage
+            localStorage.setItem("clientRequests", JSON.stringify(clientRequests));
+            
+            alert("Provisional invoice and client details sent to the engineer successfully! 🎉 Awaiting confirmation.");
+            closeClientModal();
+            document.getElementById('clientForm').reset();
+        }
+    </script>
+</body>
+</html>
