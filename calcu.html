@@ -1,74 +1,98 @@
-<!DOCTYPE html> 
-<html lang="en"> 
-<head> 
-    <meta charset="UTF-8"> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>Smart Solar Designer - Calculator</title> 
-    <link rel="stylesheet" href="style.css"> 
-</head> 
-<body> 
- 
-<header> 
-    <h1>Smart Solar Designer</h1> 
-    <nav> 
-        <div class="dropdown" id="systemDropdown"> 
-            <button class="dropdown-btn" onclick="toggleDropdown()">☰ Menu ▾</button> 
-            <div class="dropdown-content" style="right: 0; left: auto;"> 
-                <a href="index.html">🏠 Home</a> 
-                 
-                <!-- قسم فرعي للأنظمة --> 
-                <div class="submenu-container"> 
-                    <div class="submenu-title">⚡️ Systems Type:</div> 
-                    <a href="calcu.html?mode=daily" style="padding-left: 25px;">- Residential System</a> 
-                    <a href="calcu.html?mode=agricultural" style="padding-left: 25px;">- Agricultural (Solar Pump)</a> 
-                </div> 
- 
-                <a href="dashboard.html">📊 Dashboard</a> 
-            </div> 
-        </div> 
-    </nav> 
-</header> 
- 
-    <div class="calculator"> 
-        <h2>Solar System Designer</h2> 
-         
-        <label>Select System Type:</label> 
-        <select id="mode" onchange=" 
-            if(this.value === 'daily') { 
-                document.getElementById('dailyInputs').style.display = 'block'; 
-                document.getElementById('agriculturalInputs').style.display = 'none'; 
-            } else { 
-                document.getElementById('dailyInputs').style.display = 'none'; 
-                document.getElementById('agriculturalInputs').style.display = 'block'; 
-            } 
-        "> 
-            <option value="daily">Residential (Home / Daily Energy)</option> 
-            <option value="agricultural">Agricultural (Solar Water Pump)</option> 
-        </select> 
- 
-        <!-- حقول النمط المنزلي --> 
-        <div id="dailyInputs"> 
-            <label>Daily Energy Consumption (kWh):</label> 
-            <input type="number" id="energy" placeholder="e.g. 10"> 
-        </div> 
- 
-        <!-- حقول النمط الزراعي --> 
-        <div id="agriculturalInputs" style="display: none;"> 
-            <label>Pump Power (HP - Horsepower):</label> 
-            <input type="number" id="pumpHp" placeholder="e.g. 5"> 
-        </div> 
- 
-        <label>Peak Sun Hours (Hours/Day):</label> 
-        <input type="number" id="sunHours" value="5"> 
- 
-        <button class="btn btn-primary" onclick="calculate()">Calculate System</button> 
- 
-        <!-- هذا هو العنصر الهام جداً لعرض النتائج والذي كان مفقوداً --> 
-        <div id="result"></div> 
- 
-        <button class="btn btn-secondary" onclick="saveProject()">Save Project</button> 
-    </div> 
- 
-    <script src="style.js"></script> 
-</body> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Solar Designer - Calculator</title>
+    <!-- ربط ملف التصميم -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- شريط التنقل العلوي -->
+<header>
+    <h1>Smart Solar Designer</h1>
+    <nav>
+        <div class="dropdown" id="systemDropdown">
+            <button class="dropdown-btn" onclick="toggleDropdown()">Menu ▾</button>
+            <div class="dropdown-content">
+                <a href="index.html">Home</a>
+                <a href="calcu.html">Client Calculator</a>
+                <a href="dashboard.html">Engineer Dashboard</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<!-- حاوية حاسبة المنظومة الشمسية -->
+<div class="calculator">
+    <h2>Solar System Designer</h2>
+    
+    <!-- اختيار نوع النظام (سكني أو زراعي) -->
+    <label>Select System Type:</label>
+    <select id="mode" onchange="
+        if(this.value === 'daily') {
+            document.getElementById('dailyInputs').style.display = 'block';
+            document.getElementById('agriculturalInputs').style.display = 'none';
+        } else {
+            document.getElementById('dailyInputs').style.display = 'none';
+            document.getElementById('agriculturalInputs').style.display = 'block';
+        }
+    ">
+        <option value="daily">Residential System</option>
+        <option value="agricultural">Agricultural (Solar Pump)</option>
+    </select>
+
+    <!-- مدخلات النظام السكني -->
+    <div id="dailyInputs">
+        <label>Daily Energy Consumption (kWh):</label>
+        <input type="number" id="energy" placeholder="e.g. 10">
+    </div>
+
+    <!-- مدخلات النظام الزراعي -->
+    <div id="agriculturalInputs" style="display: none;">
+        <label>Pump Power (HP):</label>
+        <input type="number" id="pumpHp" placeholder="e.g. 5">
+    </div>
+
+    <!-- ساعات السطوع الشمسي -->
+    <label>Peak Sun Hours (Hours/Day):</label>
+    <input type="number" id="sunHours" value="5">
+
+    <!-- زر تنفيذ الحسابات -->
+    <button class="btn btn-primary" onclick="calculate()">Calculate System</button>
+    
+    <!-- منطقة عرض نتائج التصميم -->
+    <div id="result"></div>
+    
+    <!-- زر فتح نافذة إرسال الطلب للمهندس -->
+    <button class="btn btn-secondary" onclick="openClientModal()">Save Project (Send to Engineer)</button>
+</div>
+
+<!-- نافذة منبثقة لإدخال بيانات العميل -->
+<div id="clientModal" class="modal">
+    <div class="modal-content">
+        <h2>Enter Client Details</h2>
+        <form id="clientForm" onsubmit="submitClientOrder(event)">
+            <label>Client Name:</label>
+            <input type="text" id="clientName" required placeholder="Enter name">
+            
+            <label>Address / Location:</label>
+            <input type="text" id="clientAddress" required placeholder="Enter address">
+            
+            <label>Phone Number:</label>
+            <input type="text" id="clientPhone" required placeholder="Enter phone">
+            
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button type="submit" class="btn btn-primary" style="margin-top:0;">Save to DB</button>
+                <button type="button" class="btn" style="margin-top:0; background: #ef4444; border:none; color:white;" onclick="closeClientModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- مكتبة Supabase وجلفاسكريبت النظام -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="style.js"></script>
+</body>
 </html>
