@@ -1,294 +1,116 @@
-function getStoredArray(key) {
+// إعداد الاتصال بقاعدة البيانات Supabase
+const SUPABASE_URL = 'https://grikvijvxrrgxrjoibhs.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_L1P0fWE39VbejqgywlfEUA_dqG-_v0H';
+const { createClient } = supabase;
+const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// دالة لتنظيف النصوص وتجنب الأكواد الخبيثة
+function escapeHtml(value) {
+    return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// دالة إرسال الطلب النهائي مع بيانات العميل للمهندس وخزنها في Supabase مباشرة
+async function submitClientOrder(event) {
+    event.preventDefault();
+    
+    const projectData = localStorage.getItem("currentProject");
+    if (!projectData) {
+        alert("Please calculate the system first!");
+        return;
+    }
+    
+    let design = JSON.parse(projectData);
+    
+    const clientName = document.getElementById('clientName').value;
+    const clientAddress = document.getElementById('clientAddress').value;
+    const clientPhone = document.getElementById('clientPhone').value;
+
+    // توليد رقم معرف فريد ومؤقت لتجاوز شرط الـ ID
+    const uniqueId = Math.floor(Date.now() / 1000);
+
     try {
-        const data = localStorage.getItem(key);
+        const { data, error } = await _supabase
+            .from('projects')
+            .insert([
+                { 
+                    id: uniqueId,
+                    name: String(clientName),
+                    address: String(clientAddress),
+                    phone: String(clientPhone),
+                    systemType: String(design.mode),
+                    panels: Number(design.panels),
+                    panelspower: String(design.panelPower),
+                    inverter: String(design.inverter + 'kw'),
+                    battery: String(design.battery + 'kw'),
+                    cost: Number(design.cost)
+                }
+            ]);
 
-        if (!data) {
-            return [];
+        if (error) {
+            console.error('خطأ من Supabase:', error);
+            alert('خطأ من قاعدة البيانات: ' + error.message);
+        } else {
+            alert('تم إرسال طلبك ومعلومات التصميم بنجاح إلى المهندس! 🎉');
+            localStorage.removeItem("currentProject");
+            closeClientModal();
+            document.getElementById('clientForm').reset();
         }
-
-        const parsedData = JSON.parse(data);
-
-        return Array.isArray(parsedData) ? parsedData : [];
-    } catch (error) {
-        console.error("Error reading " + key + ":", error);
-        return [];
+    } catch (err) {
+        console.error('خطأ غير متوقع:', err);
+        alert('حدث خطأ في الاتصال: ' + err.message);
     }
 }
-
-function escapeHtml(value) {
-    return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function loadDashboardProjects() {
+// دالة جلب وعرض الطلبات في لوحة تحكم المهندس (dashboard.html)
+async function loadDashboardProjects() {
     const listElement = document.getElementById("list");
+    if (!listElement) return;
 
-    if (!listElement) {
-        console.error('Element with id="list" was not found.');
+    const { data: projects, error } = await _supabase
+        .from('projects')
+        .select('*')
+        .order('id', { ascending: false });
+
+    if (error) {
+        console.error('خطأ في جلب البيانات:', error.message);
+        listElement.innerHTML = "<p class='empty-state' style='color: red;'>تعذر الاتصال بقاعدة البيانات لجلب الطلبات.</p>";
         return;
     }
 
     listElement.innerHTML = "";
-
     const wrapper = document.createElement("div");
     wrapper.className = "project-list";
-    wrapper.style.maxWidth = "100%";
-    wrapper.style.padding = "0";
 
-    const requests = getStoredArray("clientRequests");
-    const projects = getStoredArray("projects");
-
-    // =========================
-    // 1. Customer Requests
-    // =========================
-    if (requests.length > 0) {
-        const reqHeader = document.createElement("h3");
-        reqHeader.style.color = "var(--accent2)";
-        reqHeader.style.marginBottom = "12px";
-        reqHeader.innerText = "⏳ Customer Requests Awaiting Approval";
-
-        wrapper.appendChild(reqHeader);
-
-        requests.forEach(function (req, reqIndex) {
-            const card = document.createElement("div");
-            card.className = "project-card";
-            card.style.borderLeft = "4px solid orange";
-            card.style.marginBottom = "15px";
-
-            const title = document.createElement("h3");
-            title.innerText =
-                "Client Request #" +
-                (reqIndex + 1) +
-                " — " +
-                (req.mode || "Unknown System");
-
-            card.appendChild(title);
-
-            const infoBox = document.createElement("div");
-            infoBox.style.cssText =
-                "background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; margin-bottom: 10px; border: 1px solid var(--glass-border);";
-
-            infoBox.innerHTML =
-                '<p><span class="ico">👤</span> <strong>Client Name:</strong> ' +
-                escapeHtml(req.clientName || "N/A") +
-                "</p>" +
-                '<p><span class="ico">📍</span> <strong>Address:</strong> ' +
-                escapeHtml(req.clientAddress || "N/A") +
-                "</p>" +
-                '<p><span class="ico">📞</span> <strong>Phone:</strong> ' +
-                escapeHtml(req.clientPhone || "N/A") +
-                "</p>";
-
-            card.appendChild(infoBox);
-
-            const details = document.createElement("div");
-
-            const reqExtras =
-                Array.isArray(req.extras) && req.extras.length > 0
-                    ? req.extras.join(", ")
-                    : "None selected";
-
-            const requestCost = Number(req.cost) || 0;
-
-            details.innerHTML =
-                '<p><span class="ico">📅</span> <strong>Date:</strong> ' +
-                escapeHtml(req.date || "N/A") +
-                "</p>" +
-                '<p><span class="ico">☀️</span> <strong>Panels:</strong> ' +
-                (Number(req.panels) || 0) +
-                " panels (" +
-                (Number(req.panelPower) || 0) +
-                "W)</p>" +
-                '<p><span class="ico">⚡️</span> <strong>Inverter:</strong> ' +
-                (Number(req.inverter) || 0) +
-                " kW</p>" +
-                '<p><span class="ico">🛠</span> <strong>Accessories:</strong> ' +
-                escapeHtml(reqExtras) +
-                "</p>" +
-                '<p><span class="ico">💰</span> <strong>Estimated Cost:</strong> $' +
-                requestCost.toLocaleString() +
-                "</p>";
-
-            card.appendChild(details);const btn = document.createElement("button");
-            btn.className = "print-btn";
-            btn.style.cssText =
-                "background: #28a745 !important; margin-top: 10px;";
-            btn.innerText = "✅ Confirm & Move to Active Projects";
-
-            btn.onclick = function () {
-                approveClientRequest(reqIndex);
-            };
-
-            card.appendChild(btn);
-            wrapper.appendChild(card);
-        });
-    }
-
-    // =========================
-    // 2. Active Projects
-    // =========================
-    const projHeader = document.createElement("h3");
-
-    projHeader.style.cssText =
-        "color: var(--cyan); margin: 25px 0 12px 0;";
-
-    projHeader.innerText =
-        "📋 Active Confirmed Projects & Invoices";
-
-    wrapper.appendChild(projHeader);
-
-    if (projects.length === 0) {
-        const emptyMsg = document.createElement("p");
-
-        emptyMsg.className = "empty-state";
-        emptyMsg.innerText = "No confirmed projects found.";
-
-        wrapper.appendChild(emptyMsg);
+    if (!projects || projects.length === 0) {
+        wrapper.innerHTML = "<p class='empty-state'>No pending requests found.</p>";
     } else {
         projects.forEach(function (proj, index) {
             const card = document.createElement("div");
-
-            card.className = "project-card";
+            card.className = "project-card invoice-card";
             card.style.marginBottom = "15px";
 
-            const title = document.createElement("h3");
+            const statusText = proj.status || "Pending Approval";
+            const badgeColor = statusText.includes("Approved") ? "var(--cyan)" : "var(--accent2)";
 
-            title.innerText =
-                "Project #" +
-                (index + 1) +
-                " — " +
-                (proj.mode || "Unknown System");
-
-            card.appendChild(title);
-
-            // Client Information
-            const infoBox = document.createElement("div");
-
-            infoBox.style.cssText =
-                "background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; margin-bottom: 10px; border: 1px solid var(--glass-border);";
-
-            infoBox.innerHTML =
-                '<p><span class="ico">👤</span> <strong>Client Name:</strong> ' +
-                escapeHtml(proj.clientName || "N/A") +
-                "</p>" +
-                '<p><span class="ico">📍</span> <strong>Address:</strong> ' +
-                escapeHtml(proj.clientAddress || "N/A") +
-                "</p>" +
-                '<p><span class="ico">📞</span> <strong>Phone:</strong> ' +
-                escapeHtml(proj.clientPhone || "N/A") +
-                "</p>";
-
-            card.appendChild(infoBox);
-
-            const batteryValue = Number(proj.battery) || 0;
-
-            const storageText =
-                batteryValue > 0
-                    ? batteryValue + " kWh"
-                    : "Direct Pumping";
-
-            const details = document.createElement("div");
-
-            details.innerHTML =
-                '<p><span class="ico">📅</span> <strong>Date:</strong> ' +
-                escapeHtml(proj.date || "N/A") +
-                "</p>" +
-                '<p><span class="ico">☀️</span> <strong>Solar Panels:</strong> ' +
-                (Number(proj.panels) || 0) +
-                " panels (" +
-                (Number(proj.panelPower) || 0) +
-                "W each)</p>" +
-                '<p><span class="ico">⚡️</span> <strong>Inverter Size:</strong> ' +
-                (Number(proj.inverter) || 0) +
-                " kW</p>" +
-                '<p><span class="ico">🔋</span> <strong>Storage:</strong> ' +
-                storageText +
-                "</p>";
-
-            card.appendChild(details);
-
-            // Invoice Button
-            const invBtn = document.createElement("button");
-
-            invBtn.className = "print-btn";
-            invBtn.innerText = "📄 Generate Final Bill (Invoice)";
-
-            invBtn.onclick = function () {
-                toggleInvoice(index);
-            };
-
-            card.appendChild(invBtn);
-
-            // Cost
-            const baseCost = Number(proj.cost) || 0;
-
-            const extrasHtml =
-                Array.isArray(proj.extras) && proj.extras.length > 0
-                    ? proj.extras.join(", ")
-                    : "None selected";
-
-            // Invoice Card
-            const invoiceCard = document.createElement("div");invoiceCard.id = "invoice-" + index;
-            invoiceCard.style.display = "none";
-            invoiceCard.className = "invoice-card";
-
-            invoiceCard.innerHTML =
-                '<div class="invoice-header">' +
-                "<span>SMART SOLAR SYSTEM INVOICE</span>" +
-                "<span>#" +
-                (1000 + index) +
-                "</span>" +
-                "</div>" +
-                "<p><strong>Client:</strong> " +
-                escapeHtml(proj.clientName || "N/A") +
-                " (" +
-                escapeHtml(proj.clientPhone || "N/A") +
-                ")</p>" +
-                "<p><strong>System Category:</strong> " +
-                escapeHtml(proj.mode || "N/A") +
-                "</p>" +
-                "<p><strong>1. Solar Panels:</strong> " +
-                (Number(proj.panels) || 0) +
-                " Units (" +
-                (Number(proj.panelPower) || 0) +
-                "W)</p>" +
-                "<p><strong>2. Hybrid Inverter:</strong> " +
-                (Number(proj.inverter) || 0) +
-                " kW</p>" +
-                "<p><strong>3. Storage/Pumping:</strong> " +
-                storageText +
-                "</p>" +
-                "<p><strong>4. Accessories:</strong> " +
-                escapeHtml(extrasHtml) +
-                "</p>" +
-                '<div style="margin: 12px 0; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; border: 1px solid var(--glass-border);">' +
-                '<label style="font-size: 12px; color: var(--accent2); display: block; margin-bottom: 4px;">Add/Adjust Labor & Extra Fees ($):</label>' +
-                '<input type="number" id="laborFee-' +
-                index +
-                '" placeholder="Enter labor cost" value="0" style="width: 120px; padding: 6px;" onchange="updateTotalCost(' +
-                index +
-                ", " +
-                baseCost +
-                ')">' +
-                "</div>" +
-                '<hr style="border-color: var(--glass-border); margin: 10px 0;">' +
-                '<p style="color: var(--accent2); font-size: 15px;"><strong>Total Invoice Cost: $<span id="finalCost-' +
-                index +
-                '">' +
-                baseCost.toLocaleString() +
-                "</span></strong></p>" +
-                '<div style="margin-top: 12px;">' +
-                '<button class="print-btn" style="background: var(--cyan) !important;" onclick="window.print()">🖨 Print Invoice</button> ' +
-                '<button class="print-btn" style="background: #217346 !important;" onclick="exportToExcel(' +
-                index +
-                ')">📊 Export to Excel</button>' +
-                "</div>";
-
-            card.appendChild(invoiceCard);
+            card.innerHTML = `
+                <div class="invoice-header">
+                    <span>Request #${proj.id || (index + 1)} — ${escapeHtml(proj.mode)}</span>
+                    <span style="color: ${badgeColor}; font-weight: bold;">${escapeHtml(statusText)}</span>
+                </div>
+                <div style='background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; margin-bottom: 10px;'>
+                <p>👤 <strong>Client:</strong> ${escapeHtml(proj.name)}</p>
+                    <p>📍 <strong>Address:</strong> ${escapeHtml(proj.address)}</p>
+                    <p>📞 <strong>Phone:</strong> ${escapeHtml(proj.phone)}</p>
+                </div>
+                <p>📅 <strong>Date:</strong> ${escapeHtml(proj.date)}</p>
+                <p>☀️ <strong>Panels:</strong> ${escapeHtml(proj.panels)} panels (${escapeHtml(proj.panelPower)}W)</p>
+                <p>⚡️ <strong>Inverter:</strong> ${escapeHtml(proj.inverter)} kW</p>
+                <p>🔋 <strong>Battery:</strong> ${escapeHtml(proj.battery)} kWh</p>
+                <p style="margin-top: 8px; font-size: 15px; color: var(--accent2);">💰 <strong>Total Cost:</strong> $${escapeHtml(proj.cost)}</p>
+                
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <button class="print-btn" onclick="approveProject(${proj.id})">✓ تأكيد الطلب (اعتماد)</button>
+                </div>
+            `;
             wrapper.appendChild(card);
         });
     }
@@ -296,70 +118,180 @@ function loadDashboardProjects() {
     listElement.appendChild(wrapper);
 }
 
-function approveClientRequest(reqIndex) {
-    const clientRequests = getStoredArray("clientRequests");
-    const confirmedProjects = getStoredArray("projects");
+// دالة اعتماد أو تأكيد الطلب بواسطة المهندس
+async function approveProject(projectId) {
+    const { error } = await _supabase
+        .from('projects')
+        .update({ status: 'Approved by Engineer' })
+        .eq('id', projectId);
 
-    if (reqIndex < 0 || reqIndex >= clientRequests.length) return;
-
-    const approvedProj = clientRequests.splice(reqIndex, 1)[0];
-    confirmedProjects.push(approvedProj);
-
-    localStorage.setItem("clientRequests", JSON.stringify(clientRequests));
-    localStorage.setItem("projects", JSON.stringify(confirmedProjects));
-
-    alert("Project approved and moved to active invoices! ✅");
-    loadDashboardProjects();
-}
-
-function toggleInvoice(index) {
-    const inv = document.getElementById("invoice-" + index);
-    if (inv) {
-        inv.style.display = inv.style.display === "none" ? "block" : "none";
+    if (error) {
+        alert('حدث خطأ أثناء تأكيد الطلب: ' + error.message);
+    } else {
+        alert('تم تأكيد الطلب بنجاح!');
+        loadDashboardProjects();
     }
 }
 
-function updateTotalCost(index, baseCost) {
-    const laborInput = document.getElementById("laborFee-" + index);
-    const finalCostSpan = document.getElementById("finalCost-" + index);
-    if (laborInput && finalCostSpan) {
-        const laborValue = Number(laborInput.value) || 0;
-        const total = baseCost + laborValue;
-        finalCostSpan.innerText = total.toLocaleString();
+// التشغيل التلقائي للدالة حسب الصفحة الحالية
+window.addEventListener('DOMContentLoaded', () => {
+    if (window.location.pathname.includes('dashboard.html')) {
+        loadDashboardProjects();
     }
-}function exportToExcel(index) {
-    const projects = getStoredArray("projects");
-    const proj = projects[index];
-    if (!proj) return;
+});
 
-    const laborInput = document.getElementById("laborFee-" + index);
-    const laborVal = laborInput ? Number(laborInput.value) || 0 : 0;
-    const finalTotal = (Number(proj.cost) || 0) + laborVal;
+// دالة لتنظيف النصوص وتجنب الأكواد الخبيثة
+function escapeHtml(value) {
+    return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
 
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+// دالة إرسال الطلب النهائي مع بيانات العميل للمهندس وخزنها في Supabase مباشرة
+async function submitClientOrder(event) {
+    event.preventDefault();
+    
+    const projectData = localStorage.getItem("currentProject");
+    if (!projectData) {
+        alert("Please calculate the system first!");
+        return;
+    }
+    
+    let design = JSON.parse(projectData);
+    
+    const clientName = document.getElementById('clientName').value;
+    const clientAddress = document.getElementById('clientAddress').value;
+    const clientPhone = document.getElementById('clientPhone').value;
+
+    const uniqueId = Math.floor(Date.now() / 1000);
+
+    try {
+        const { data, error } = await _supabase
+            .from('projects')
+            .insert([
+                { 
+                    id: uniqueId,
+                    name: String(clientName),
+                    address: String(clientAddress),
+                    phone: String(clientPhone),
+                    systemType: String(design.mode),
+                    panels: Number(design.panels),
+                    panelspower: String(design.panelPower),
+                    inverter: String(design.inverter + 'kw'),
+                    battery: String(design.battery + 'kw'),
+                    cost: Number(design.cost)
+                }
+            ]);
+
+        if (error) {
+            console.error('خطأ من Supabase:', error);
+            alert('خطأ من قاعدة البيانات: ' + error.message);
+        } else {
+            alert('تم إرسال طلبك ومعلومات التصميم بنجاح إلى المهندس! 🎉');
+            localStorage.removeItem("currentProject");
+            closeClientModal();
+            document.getElementById('clientForm').reset();
+        }
+    } catch (err) {
+        console.error('خطأ غير متوقع:', err);
+        alert('حدث خطأ في الاتصال: ' + err.message);
+    }
+}
+
+// دالة جلب وعرض الطلبات في لوحة تحكم المهندس (dashboard.html)
+async function loadDashboardProjects() {
+    const listElement = document.getElementById("list");
+    if (!listElement) return;
+
+    const { data: projects, error } = await _supabase
+        .from('projects')
+        .select('*')
+        .order('id', { ascending: false });
+
+    if (error) {
+        console.error('خطأ في جلب البيانات:', error.message);
+        listElement.innerHTML = "<p class='empty-state' style='color: red;'>تعذر الاتصال بقاعدة البيانات لجلب الطلبات.</p>";
+        return;
+    }
+
+    listElement.innerHTML = "";
+    const wrapper = document.createElement("div");
+    wrapper.className = "project-list";
+
+    if (!projects || projects.length === 0) {
+        wrapper.innerHTML = "<p class='empty-state'>No pending requests found.</p>";
+    } else {
+        projects.forEach(function (proj, index) {
+            const card = document.createElement("div");
+            card.className = "project-card invoice-card";
+            card.style.marginBottom = "15px";
+
+            const statusText = proj.status || "Pending Approval";
+            const badgeColor = statusText.includes("Approved") ? "var(--cyan)" : "var(--accent2)";
+
+            card.innerHTML = `
+                <div class="invoice-header">
+                    <span>Request #${proj.id || (index + 1)} — ${escapeHtml(proj.systemType)}</span>
+                    <span style="color: ${badgeColor}; font-weight: bold;">${escapeHtml(statusText)}</span>
+                </div><div style='background: rgba(0,0,0,0.2); padding: 10px; border-radius: 4px; margin-bottom: 10px;'>
+                    <p>👤 <strong>Client:</strong> ${escapeHtml(proj.name)}</p>
+                    <p>📍 <strong>Address:</strong> ${escapeHtml(proj.address)}</p>
+                    <p>📞 <strong>Phone:</strong> ${escapeHtml(proj.phone)}</p>
+                </div>
+                <p>☀️ <strong>Panels:</strong> ${escapeHtml(proj.panels)} panels (${escapeHtml(proj.panelspower)})</p>
+                <p>⚡️ <strong>Inverter:</strong> ${escapeHtml(proj.inverter)}</p>
+                <p>🔋 <strong>Battery:</strong> ${escapeHtml(proj.battery)}</p>
+                <p style="margin-top: 8px; font-size: 15px; color: var(--accent2);">💰 <strong>Total Cost:</strong> $${escapeHtml(proj.cost)}</p>
+                
+                <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="print-btn" onclick="approveProject(${proj.id})">✓ تأكيد الطلب (اعتماد)</button>
+                    <button class="print-btn" style="background: var(--cyan) !important;" onclick="exportProjectToExcel('${escapeHtml(proj.name)}', '${escapeHtml(proj.systemType)}', '${escapeHtml(proj.panels)}', '${escapeHtml(proj.inverter)}', '${escapeHtml(proj.battery)}', '${escapeHtml(proj.cost)}')">📥 تصدير إلى Excel</button>
+                </div>
+            `;
+            wrapper.appendChild(card);
+        });
+    }
+
+    listElement.appendChild(wrapper);
+}
+
+// دالة اعتماد أو تأكيد الطلب بواسطة المهندس
+async function approveProject(projectId) {
+    const { error } = await _supabase
+        .from('projects')
+        .update({ status: 'Approved by Engineer' })
+        .eq('id', projectId);
+
+    if (error) {
+        alert('حدث خطأ أثناء تأكيد الطلب: ' + error.message);
+    } else {
+        alert('تم تأكيد الطلب بنجاح!');
+        loadDashboardProjects();
+    }
+}
+
+// --- دالة جديدة: تصدير بيانات الفاتورة إلى ملف Excel (CSV) ---
+function exportProjectToExcel(clientName, systemType, panels, inverter, battery, cost) {
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // دعم اللغة العربية (UTF-8 BOM)
+    
     csvContent += "Field,Details\n";
-    csvContent += "Client Name," + (proj.clientName || "") + "\n";
-    csvContent += "Client Address," + (proj.clientAddress || "") + "\n";
-    csvContent += "Client Phone," + (proj.clientPhone || "") + "\n";
-    csvContent += "System Type," + (proj.mode || "") + "\n";
-    csvContent += "Date," + (proj.date || "") + "\n";
-    csvContent += "Solar Panels (Units)," + (proj.panels || 0) + "\n";
-    csvContent += "Panel Power (W)," + (proj.panelPower || 0) + "\n";
-    csvContent += "Inverter Size (kW)," + (proj.inverter || 0) + "\n";
-    csvContent += "Storage/Energy," + (proj.battery > 0 ? proj.battery + " kWh" : "Direct Pumping") + "\n";
-    csvContent += "Accessories," + (proj.extras ? proj.extras.join(" - ") : "None") + "\n";
-    csvContent += "Labor & Extra Fees ($)," + laborVal + "\n";
-    csvContent += "Total Invoice Cost ($)," + finalTotal + "\n";
+    csvContent += "Client Name," + clientName + "\n";
+    csvContent += "System Type," + systemType + "\n";
+    csvContent += "Panels Count," + panels + "\n";
+    csvContent += "Inverter Size," + inverter + "\n";
+    csvContent += "Battery Capacity," + battery + "\n";
+    csvContent += "Total Cost ($)," + cost + "\n";
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
+    let encodedUri = encodeURI(csvContent);
+    let link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Solar_Invoice_" + (1000 + index) + ".csv");
+    link.setAttribute("download", "Solar_Invoice_" + clientName.replace(/\s+/g, "_") + ".csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-    loadDashboardProjects();
+// التشغيل التلقائي للدالة حسب الصفحة الحالية
+window.addEventListener('DOMContentLoaded', () => {
+    if (window.location.pathname.includes('dashboard.html')) {
+        loadDashboardProjects();
+    }
 });
