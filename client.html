@@ -47,7 +47,7 @@
         
         <div style="margin: 20px 0; text-align: left;">
             <label style="color: var(--accent2); margin-bottom: 12px; display: block; font-weight: bold; font-size: 14px;">
-                🛠 Optional Accessories & Services:
+                 Optional Accessories & Services:
             </label>
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
@@ -95,8 +95,8 @@
 <!-- نافذة إدخال بيانات العميل (تظهر بعد النضغط على إرسال الطلب للمهندس) -->
 <div id="clientModal" class="modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 2000; justify-content: center; align-items: center;">
     <div class="calculator" style="max-width: 420px; margin: auto; position: relative;">
-        <h3 style="color: var(--accent2); margin-bottom: 16px; text-align: center;">📝 أدخل بيانات العميل للإرسال</h3>
-        <form id="clientForm" onsubmit="submitClientOrder(event)">
+        <h3 style="color: var(--accent2); margin-bottom: 16px; text-align: center;"> أدخل بيانات العميل للإرسال</h3>
+       <form id="clientForm" onsubmit="submitClientOrder(event)">
             <label>اسم العميل:</label>
             <input type="text" id="clientName" required placeholder="الاسم الكريم">
 
@@ -111,8 +111,7 @@
         </form>
     </div>
 </div>
-
-    <script>
+<script>
         const panelPowerValue = 590;
 
         function calculateClientSystem() {
@@ -139,7 +138,8 @@
 
             if (mode === "daily") {
                 systemTypeName = "Residential System (Home)";
-                const energyElement = document.getElementById("energy");if (!energyElement) return;
+                const energyElement = document.getElementById("energy");
+                if (!energyElement) return;
                 
                 energy = Number(energyElement.value);
                 if (energy <= 0) {
@@ -208,22 +208,21 @@
                 date: new Date().toLocaleDateString()
             };
 
-            // حفظ البيانات مؤقتاً في المتصفح
+            // حفظ بيانات التصميم مؤقتاً في المتصفح لعرضها وإرسالها لاحقاً
             localStorage.setItem("currentProject", JSON.stringify(currentData));
-
-            let resultHTML = '<div class="result-card">' +
-                '<h3>📊 Your Design & Estimated Price</h3>' +
-                '<p><span class="ico">🚜</span> <strong>System:</strong> ' + systemTypeName + '</p>' +
-                '<p><span class="ico">☀️</span> <strong>Solar Panels:</strong> ' + panels + ' panels (' + panelPowerValue + 'W)</p>' +
-                '<p><span class="ico">⚡️</span> <strong>Inverter Size:</strong> ' + inverter + ' kW</p>';
+ let resultHTML = '<div class="result-card">' +
+                '<h3> Your Design & Estimated Price</h3>' +
+                '<p><span class="ico"></span> <strong>System:</strong> ' + systemTypeName + '</p>' +
+                '<p><span class="ico"></span> <strong>Solar Panels:</strong> ' + panels + ' panels (' + panelPowerValue + 'W)</p>' +
+                '<p><span class="ico"></span> <strong>Inverter Size:</strong> ' + inverter + ' kW</p>';
 
             if (mode === "agricultural") {
-                resultHTML += '<p><span class="ico">🔋</span> <strong>Battery Bank:</strong> Not Required</p>';
+                resultHTML += '<p><span class="ico"></span> <strong>Battery Bank:</strong> Not Required</p>';
             } else {
-                resultHTML += '<p><span class="ico">🔋</span> <strong>Battery Size:</strong> ' + battery + ' kWh</p>';
+                resultHTML += '<p><span class="ico"></span> <strong>Battery Size:</strong> ' + battery + ' kWh</p>';
             }
             resultHTML += '<hr style="border-color: var(--glass-border); margin: 12px 0;">' +
-                '<p style="font-size: 15px; color: var(--accent2) !important;"><strong>💰 Estimated Total Cost:</strong> $' + estimatedCost.toLocaleString() + '</p>' +
+                '<p style="font-size: 15px; color: var(--accent2) !important;"><strong> Estimated Total Cost:</strong> $' + estimatedCost.toLocaleString() + '</p>' +
                 '</div>';
             
             if (resultElement) {
@@ -231,7 +230,7 @@
             }
         }
 
-        // دالة فتح نافذة بيانات العميل
+        // دالة فتح نافذة إدخال بيانات العميل
         function openClientModal() {
             const projectData = localStorage.getItem("currentProject");
             if (!projectData) {
@@ -241,40 +240,13 @@
             document.getElementById('clientModal').style.display = 'flex';
         }
 
-        // دالة إغلاق نافذة بيانات العميل
+        // دالة إغلاق النافذة
         function closeClientModal() {
             document.getElementById('clientModal').style.display = 'none';
         }
-
-        // دالة إرسال الطلب النهائي مع بيانات العميل للمهندس
-        function submitClientOrder(event) {
-            event.preventDefault();
-            
-            const projectData = localStorage.getItem("currentProject");
-            if (!projectData) {
-                alert("Please calculate the system first!");
-                return;
-            }
-            
-            let project = JSON.parse(projectData);
-            
-            // إضافة بيانات العميل المدخلة في الـ Modal إلى كائن المشروع
-            project.clientName = document.getElementById('clientName').value;
-            project.clientAddress = document.getElementById('clientAddress').value;
-            project.clientPhone = document.getElementById('clientPhone').value;
-            project.status = "Pending Approval"; 
-            
-            // جلب الطلبات السابقة أو إنشاء مصفوفة جديدة
-            let clientRequests = JSON.parse(localStorage.getItem("clientRequests")) || [];
-            clientRequests.push(project);
-            
-            // حفظ المصفوفة المحدثة في الـ LocalStorage
-            localStorage.setItem("clientRequests", JSON.stringify(clientRequests));
-            
-            alert("Provisional invoice and client details sent to the engineer successfully! 🎉 Awaiting confirmation.");
-            closeClientModal();
-            document.getElementById('clientForm').reset();
-        }
     </script>
+   
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+   <script src="dashboard.js"></script>
 </body>
 </html>
