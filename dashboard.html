@@ -5,47 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Engineer Dashboard - Smart Solar Designer</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .invoice-card {
-            background: rgba(0, 43, 54, 0.85) !important;
-            border: 1px solid var(--accent) !important;
-            margin-top: 15px;
-            padding: 16px;
-            border-radius: var(--radius-sm);
-        }
-        .invoice-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-            font-family: var(--font-mono);
-            color: var(--accent2);
-            font-size: 13px;
-        }
-        .print-btn {
-            background: var(--accent) !important;
-            color: var(--base03) !important;
-            border: none !important;
-            padding: 6px 14px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-            margin-right: 5px;
-        }
-        .print-btn:hover {
-            filter: brightness(1.1);
-        }
-        @media print {
-            body * { visibility: hidden; }
-            #printable-invoice, #printable-invoice * { visibility: visible; }
-            #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; }
-            .print-btn, header, .dropdown { display: none !important; }
-        }
-    </style>
 </head>
 <body>
 
@@ -54,10 +13,10 @@
     <nav>
         <div class="dropdown" id="systemDropdown">
             <button class="dropdown-btn" onclick="toggleDropdown()">☰ Menu ▾</button>
-            <div class="dropdown-content" style="right: 0; left: auto;">
-                <a href="index.html">🏠 Home</a>
-                <a href="client.html">☀️ Client Calculator</a>
-                <a href="dashboard.html">📊 Engineer Dashboard</a>
+            <div class="dropdown-content">
+                <a href="index.html"> Home</a>
+                <a href="client.html"> Client Calculator</a>
+                <a href="dashboard.html"> Engineer Dashboard</a>
             </div>
         </div>
     </nav>
@@ -67,7 +26,7 @@
     <h2 style="font-size: 20px; color: var(--text-hi); margin-bottom: 16px;">Customer Requests & Active Invoices</h2>
     <div id="list"></div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="style.js"></script>
 <script src="dashboard.js"></script>
 </body>
